@@ -56,4 +56,4 @@
 ```
 
 # リンク
-- [WIKI](https://github.com/{{OWNER}}/{{REPOSITORY_NAME}}/wiki)
+- [WIKI](https://github.com/kuroHigasi/site-plan-private/wiki)
