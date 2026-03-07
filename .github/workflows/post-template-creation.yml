@@ -1,0 +1,28 @@
+name: Post-template creation setup
+
+on:
+  push:
+    branches: [main] # テンプレートから作成された直後の最初のpushで実行
+
+jobs:
+  setup:
+    # テンプレートリポジトリ自体では実行されないようにするガード
+    if: github.event.repository.name != 'template-project-document'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update README with project info
+        run: |
+          # テンプレート内のプレースホルダー（{{REPOSITORY_NAME}}など）を置換
+          sed -i "s/{{REPOSITORY_NAME}}/${{ github.event.repository.name }}/g" README.md
+          sed -i "s/{{OWNER}}/${{ github.repository_owner }}/g" README.md
+          
+          # 変更があればコミット
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          git commit -m "docs: auto-update README with project details" || echo "No changes to commit"
+          git push
