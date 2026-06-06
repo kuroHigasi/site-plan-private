@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '01_DOCS/04_API設計/02_詳細設計/テーブル定義/*.dbml' # このフォルダ内のDBMLが変更された時だけ実行
+      - '01_DOCS/04_API設計/02_詳細設計/テーブル定義/**/*.dbml' # このフォルダ内のDBMLが変更された時だけ実行
   workflow_dispatch: # 手動実行用
 
 permissions:
@@ -30,12 +30,9 @@ jobs:
         with:
           node-version: 22
 
-      # 3. DBML CLIのインストールと生成処理
+      # 3. DBML CLIを用いた生成処理
       - name: Generate Markdown and MySQL Script
         run: |
-          # 公式のDBML CLIをインストール
-          npm install -g @dbml/cli
-          
           # 📂 出力先フォルダの定義と作成（日本語・特殊文字対応）
           MD_DIR="01_DOCS/wiki/05_DB設計"
           SQL_DIR="02_OUTPUT/QUERY"
@@ -53,15 +50,15 @@ jobs:
             exit 1
           fi
 
-          # パスからファイル名（拡張子なし）を抽出 (例: users.dbml -> users)
+          # パスからファイル名（拡張子なし）を抽出 (例: changelogs.dbml -> changelogs)
           BASE_NAME=$(basename "$DBML_FILE" .dbml)
           echo "Found DBML file: $DBML_FILE (Base name: $BASE_NAME)"
 
-          # 📄 A. 指定フォルダへのMarkdown定義書の生成
-          dbml2markdown "$DBML_FILE" -o "${MD_DIR}/${BASE_NAME}.md"
+          # 📄 A. npx を使ってMarkdown定義書を生成
+          npx @dbml/cli dbml2markdown "$DBML_FILE" -o "${MD_DIR}/${BASE_NAME}.md"
           
-          # 🐬 B. 指定フォルダへのMySQL用SQLの生成
-          dbml2sql "$DBML_FILE" --mysql -o "${SQL_DIR}/${BASE_NAME}.sql"
+          # 🐬 B. npx を使ってMySQL用SQLを生成
+          npx @dbml/cli dbml2sql "$DBML_FILE" --mysql -o "${SQL_DIR}/${BASE_NAME}.sql"
 
       # 4. 変更があれば自動コミットしてPush
       - name: Commit and Push
@@ -72,6 +69,6 @@ jobs:
           # 成果物をGitに追加
           git add "01_DOCS/wiki/05_DB設計/*.md" "02_OUTPUT/QUERY/*.sql"
           
-          # [skip ci] で無限ルールを防止
+          # [skip ci] で無限ループを防止
           git commit -m "docs/db: [skip ci] DBMLからMarkdownとMySQLを自動生成" || echo "No changes to commit"
           git push origin main
