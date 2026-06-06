@@ -30,7 +30,11 @@ jobs:
         with:
           node-version: 22
 
-      # 3. DBML CLIを用いた生成処理（npxサブコマンド形式）
+      # 3. @dbml/cli をグローバルインストール
+      - name: Install DBML CLI
+        run: npm install -g @dbml/cli
+
+      # 4. DBML CLIを用いた生成処理（全DBMLファイルをループ処理）
       - name: Generate Markdown and MySQL Script
         run: |
           # 📂 出力先フォルダの定義と作成（日本語・特殊文字対応）
@@ -38,29 +42,31 @@ jobs:
           SQL_DIR="02_OUTPUT/QUERY"
           mkdir -p "$MD_DIR"
           mkdir -p "$SQL_DIR"
-          
+
           # 📥 入力元フォルダの定義
           INPUT_DIR="01_DOCS/04_API設計/02_詳細設計/テーブル定義"
-          
-          # 指定された入力元フォルダ内から .dbml ファイルを探す
-          DBML_FILE=$(find "$INPUT_DIR" -name "*.dbml" | head -n 1)
-          
-          if [ -z "$DBML_FILE" ]; then
+
+          # 指定された入力元フォルダ内の .dbml ファイルが存在するか確認
+          DBML_COUNT=$(find "$INPUT_DIR" -name "*.dbml" | wc -l)
+          if [ "$DBML_COUNT" -eq 0 ]; then
             echo "Error: No .dbml file found in '$INPUT_DIR'."
             exit 1
           fi
 
-          # パスからファイル名（拡張子なし）を抽出 (例: changelogs.dbml -> changelogs)
-          BASE_NAME=$(basename "$DBML_FILE" .dbml)
-          echo "Found DBML file: $DBML_FILE (Base name: $BASE_NAME)"
+          # 全 .dbml ファイルをループして変換
+          find "$INPUT_DIR" -name "*.dbml" | while read -r DBML_FILE; do
+            # パスからファイル名（拡張子なし）を抽出 (例: changelogs.dbml -> changelogs)
+            BASE_NAME=$(basename "$DBML_FILE" .dbml)
+            echo "Processing: $DBML_FILE (Base name: $BASE_NAME)"
 
-          # 📄 A. npx を使ってMarkdown定義書を生成 (公式仕様の md サブコマンド)
-          npx @dbml/cli dbml md "$DBML_FILE" -o "${MD_DIR}/${BASE_NAME}.md"
-          
-          # 🐬 B. npx を使ってMySQL用SQLを生成 (公式仕様の sql サブコマンド)
-          npx @dbml/cli dbml sql "$DBML_FILE" --mysql -o "${SQL_DIR}/${BASE_NAME}.sql"
+            # 📄 A. Markdown定義書を生成
+            dbml md "$DBML_FILE" -o "${MD_DIR}/${BASE_NAME}.md"
 
-      # 4. 変更があれば自動コミットしてPush
+            # 🐬 B. MySQL用SQLを生成
+            dbml mysql "$DBML_FILE" -o "${SQL_DIR}/${BASE_NAME}.sql"
+          done
+
+      # 5. 変更があれば自動コミットしてPush
       - name: Commit and Push
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
