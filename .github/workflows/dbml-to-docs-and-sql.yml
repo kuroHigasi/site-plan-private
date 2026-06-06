@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: 22
 
-      # 3. DBML CLIを用いた生成処理
+      # 3. DBML CLIを用いた生成処理（npxサブコマンド形式）
       - name: Generate Markdown and MySQL Script
         run: |
           # 📂 出力先フォルダの定義と作成（日本語・特殊文字対応）
@@ -54,11 +54,11 @@ jobs:
           BASE_NAME=$(basename "$DBML_FILE" .dbml)
           echo "Found DBML file: $DBML_FILE (Base name: $BASE_NAME)"
 
-          # 📄 A. npx を使ってMarkdown定義書を生成
-          npx @dbml/cli dbml2markdown "$DBML_FILE" -o "${MD_DIR}/${BASE_NAME}.md"
+          # 📄 A. npx を使ってMarkdown定義書を生成 (公式仕様の md サブコマンド)
+          npx @dbml/cli md "$DBML_FILE" -o "${MD_DIR}/${BASE_NAME}.md"
           
-          # 🐬 B. npx を使ってMySQL用SQLを生成
-          npx @dbml/cli dbml2sql "$DBML_FILE" --mysql -o "${SQL_DIR}/${BASE_NAME}.sql"
+          # 🐬 B. npx を使ってMySQL用SQLを生成 (公式仕様の sql サブコマンド)
+          npx @dbml/cli sql "$DBML_FILE" --mysql -o "${SQL_DIR}/${BASE_NAME}.sql"
 
       # 4. 変更があれば自動コミットしてPush
       - name: Commit and Push
