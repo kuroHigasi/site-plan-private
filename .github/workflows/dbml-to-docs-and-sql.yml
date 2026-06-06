@@ -30,9 +30,11 @@ jobs:
         with:
           node-version: 22
 
-      # 3. @dbml/cli をグローバルインストール
-      - name: Install DBML CLI
-        run: npm install -g @dbml/cli
+      # 3. 依存パッケージをローカルインストール
+      #    @dbml/cli  : dbml2sql / sql2dbml コマンドを提供（SQL生成用）
+      #    @dbml/core : DBML パーサー（カスタム Markdown 生成スクリプト用）
+      - name: Install DBML packages
+        run: npm install @dbml/cli @dbml/core
 
       # 4. DBML CLIを用いた生成処理（全DBMLファイルをループ処理）
       - name: Generate Markdown and MySQL Script
@@ -59,11 +61,11 @@ jobs:
             BASE_NAME=$(basename "$DBML_FILE" .dbml)
             echo "Processing: $DBML_FILE (Base name: $BASE_NAME)"
 
-            # 📄 A. Markdown定義書を生成
-            dbml md "$DBML_FILE" -o "${MD_DIR}/${BASE_NAME}.md"
+            # 📄 A. カスタムスクリプトで Markdown 定義書を生成（@dbml/core 使用）
+            node scripts/dbml-to-md.js "$DBML_FILE" "${MD_DIR}/${BASE_NAME}.md"
 
-            # 🐬 B. MySQL用SQLを生成
-            dbml mysql "$DBML_FILE" -o "${SQL_DIR}/${BASE_NAME}.sql"
+            # 🐬 B. dbml2sql コマンドで MySQL 用 SQL を生成（@dbml/cli 提供バイナリ）
+            ./node_modules/.bin/dbml2sql "$DBML_FILE" --mysql -o "${SQL_DIR}/${BASE_NAME}.sql"
           done
 
       # 5. 変更があれば自動コミットしてPush
