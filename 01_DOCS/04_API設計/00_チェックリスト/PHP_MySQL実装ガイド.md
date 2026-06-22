@@ -1,5 +1,7 @@
 # PHP + MySQL API 実装ガイド
 
+> **本プロジェクトの API 方針:** エンドポイントは `.php` ファイル単位（`/api/public/`, `/api/admin/`）。認証は管理 API のみ HttpOnly Cookie + CSRF。詳細は `01_DOCS/wiki/04_API設計/00_共通仕様.md` を参照。
+
 ## 1. 開発環境セットアップ
 
 ### 1.1 推奨スキルスタック
@@ -32,7 +34,7 @@
 APP_NAME=MyAPI
 APP_ENV=local
 APP_DEBUG=true
-APP_URL=http://localhost:8000
+APP_URL=http://localhost:8080
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -41,10 +43,12 @@ DB_DATABASE=myapi_db
 DB_USERNAME=root
 DB_PASSWORD=
 
+API_SERVICE_NAME=astrohp
+CORS_ALLOW_ORIGIN=*
+PUBLIC_API_BASE=http://localhost:8080/api
+
 LOG_CHANNEL=stack
 LOG_LEVEL=debug
-
-JWT_SECRET=your-secret-key
 ```
 
 ---
@@ -113,80 +117,62 @@ foreach ($users as $user) {
 
 ---
 
-## 3. RESTful API 設計パターン
+## 3. API 設計パターン（本プロジェクト）
 
-### 3.1 エンドポイント設計テンプレート
-```
-GET    /api/v1/users           # ユーザー一覧取得（ページネーション対応）
-POST   /api/v1/users           # ユーザー新規作成
-GET    /api/v1/users/{id}      # 指定ユーザー取得
-PUT    /api/v1/users/{id}      # ユーザー更新（全置換）
-PATCH  /api/v1/users/{id}      # ユーザー部分更新
-DELETE /api/v1/users/{id}      # ユーザー削除
-```
+### 3.1 エンドポイント構成
 
-### 3.2 一般的なクエリパラメータ
 ```
-GET /api/v1/users?page=1&per_page=20&sort=-created_at&filter[status]=active&search=john
+/api/public/changelogs.php     # 公開: 変更履歴一覧（GET のみ、認証不要）
+/api/admin/changelogs.php      # 管理: 変更履歴 CRUD（Cookie + CSRF）
+/api/admin/session.php         # 管理: セッション確認
+/api/admin/login.php           # 管理: ログイン
+/api/admin/logout.php          # 管理: ログアウト
+/api/admin/users.php           # 管理: ユーザー一覧（PII）
 ```
 
-| パラメータ | 型 | 例 | 説明 |
-|-----------|-----|-----|------|
-| `page` | int | 1 | ページ番号 |
-| `per_page` | int | 20 | 1ページあたりの件数 |
-| `sort` | string | `-created_at` | ソート（`-`は降順） |
-| `filter[status]` | string | `active` | フィルタリング |
-| `search` | string | `john` | 全文検索 |
-| `include` | string | `roles,posts` | リレーション含有 |
+### 3.2 クエリパラメータ（一覧取得）
+
+```
+GET /api/public/changelogs.php?page=1&per_page=10&from=2026-01-01&to=2026-12-31
+```
+
+| パラメータ | 型 | 公開 API | 管理 API | 説明 |
+|-----------|-----|----------|----------|------|
+| `page` | int | デフォルト 1 | デフォルト 1 | ページ番号 |
+| `per_page` | int | デフォルト 10、上限 50 | デフォルト 20、上限 100 | 1 ページあたり件数 |
+| `from` | date | 任意 | 任意 | `YYYY-MM-DD` |
+| `to` | date | 任意 | 任意 | `YYYY-MM-DD` |
 
 ### 3.3 レスポンスフォーマット統一
 
-```php
-// ✅ 成功レスポンス
+```json
+// 単体成功
 {
-  "success": true,
   "data": {
     "id": 1,
-    "name": "John Doe",
-    "email": "john@example.com",
-    "created_at": "2026-06-06T10:30:00Z"
-  },
-  "meta": {
-    "timestamp": "2026-06-06T10:30:00Z",
-    "api_version": "1.0"
+    "title": "..."
   }
 }
 
-// ✅ リスト取得レスポンス（ページネーション）
+// 一覧成功
 {
-  "success": true,
-  "data": [
-    { "id": 1, "name": "User 1" },
-    { "id": 2, "name": "User 2" }
-  ],
+  "data": [],
   "pagination": {
-    "current_page": 1,
-    "per_page": 20,
-    "total": 100,
-    "last_page": 5,
-    "from": 1,
-    "to": 20
+    "page": 1,
+    "per_page": 10,
+    "total": 42,
+    "total_pages": 5
   }
 }
 
-// ✅ エラーレスポンス
+// エラー（RFC7807 互換）
 {
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "バリデーションエラー",
-    "details": [
-      {
-        "field": "email",
-        "message": "メールアドレスの形式が不正です"
-      }
-    ]
-  }
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "per_page must be between 1 and 50.",
+  "instance": "/api/public/changelogs.php?page=1&per_page=100",
+  "traceId": "9a0b2d6f8c1e4a67"
 }
 ```
 
@@ -194,7 +180,68 @@ GET /api/v1/users?page=1&per_page=20&sort=-created_at&filter[status]=active&sear
 
 ## 4. 認証・認可実装
 
-### 4.1 JWT認証（Laravel Sanctum推奨）
+### 4.1 セッション Cookie + CSRF（管理 API）
+
+```php
+// api/admin/login.php（概要）
+// 成功時: Set-Cookie: astrohp_admin=...; HttpOnly; SameSite=Lax
+// レスポンス: { "data": { "admin_id": 1, "csrfToken": "..." } }
+
+// api/admin/session.php（概要）
+// 未ログインでも 200: { "data": { "authenticated": false, "csrfToken": null } }
+
+// 変更系リクエストの検証
+function requireAdminAuth(): void
+{
+    if (!isAuthenticated()) {
+        respondProblem(401, 'Authentication required.');
+    }
+}
+
+function requireCsrfToken(): void
+{
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (!hash_equals(getSessionCsrfToken(), $token)) {
+        respondProblem(403, 'CSRF token mismatch.');
+    }
+}
+```
+
+### 4.2 公開 API（認証不要）
+
+```php
+// api/public/changelogs.php（概要）
+// Accept ヘッダー検証のみ
+// is_published = 1 のみ返却
+// Cache-Control: public, max-age=60
+```
+
+### 4.3 ブラウザからの fetch 例
+
+```javascript
+const API_ACCEPT = 'application/vnd.astrohp+json;version=1';
+
+// 公開 API
+const res = await fetch(`${BASE}/public/changelogs.php?page=1`, {
+  headers: { Accept: API_ACCEPT },
+});
+
+// 管理 API（変更系）
+const res = await fetch(`${BASE}/admin/changelogs.php`, {
+  method: 'POST',
+  credentials: 'include',
+  headers: {
+    Accept: API_ACCEPT,
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': csrfToken,
+  },
+  body: JSON.stringify({ title: '...', changed_at: '2026-06-01', is_published: true }),
+});
+```
+
+> Bearer トークン（JWT 等）は **使用しない**。以下の Laravel 例は汎用参考として残す。
+
+### 4.4 参考: JWT 認証（Laravel Sanctum ― 本プロジェクト非採用）
 ```php
 // routes/api.php
 Route::post('/login', [AuthController::class, 'login']);
@@ -229,7 +276,7 @@ class AuthController extends Controller
 }
 ```
 
-### 4.2 ロールベースアクセス制御（RBAC）
+### 4.5 参考: ロールベースアクセス制御（RBAC ― 本プロジェクト非採用）
 ```php
 // app/Models/User.php
 class User extends Model
@@ -377,37 +424,45 @@ class UserTest extends TestCase
 ```
 
 ### 6.2 機能テスト（API テスト）
+
 ```php
-// tests/Feature/UserApiTest.php
-class UserApiTest extends TestCase
+// tests/Feature/ChangelogPublicApiTest.php（概要）
+public function test_can_fetch_public_changelogs(): void
 {
-    public function test_can_fetch_users()
-    {
-        User::factory(5)->create();
+    $response = $this->get('/api/public/changelogs.php?page=1', [
+        'Accept' => 'application/vnd.astrohp+json;version=1',
+    ]);
 
-        $response = $this->getJson('/api/v1/users');
+    $response->assertStatus(200)
+             ->assertJsonStructure([
+                 'data' => [
+                     '*' => ['id', 'title', 'body', 'changed_at']
+                 ],
+                 'pagination' => ['page', 'per_page', 'total', 'total_pages']
+             ]);
+}
 
-        $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         '*' => ['id', 'name', 'email']
-                     ],
-                     'pagination'
-                 ]);
-    }
+public function test_returns_406_without_accept_header(): void
+{
+    $response = $this->get('/api/public/changelogs.php');
+    $response->assertStatus(406)
+             ->assertJsonPath('status', 406);
+}
 
-    public function test_validation_error_on_invalid_email()
-    {
-        $response = $this->postJson('/api/v1/users', [
-            'name' => 'John',
-            'email' => 'invalid-email',
-            'password' => 'pass123'
-        ]);
+public function test_admin_post_requires_csrf(): void
+{
+    $this->actingAsAdmin(); // Cookie セッション設定
 
-        $response->assertStatus(422)
-                 ->assertJsonPath('error.code', 'VALIDATION_ERROR');
-    }
+    $response = $this->postJson('/api/admin/changelogs.php', [
+        'title' => 'Test',
+        'changed_at' => '2026-06-01',
+    ], [
+        'Accept' => 'application/vnd.astrohp+json;version=1',
+        // X-CSRF-Token なし
+    ]);
+
+    $response->assertStatus(403)
+             ->assertJsonPath('detail', 'CSRF token mismatch.');
 }
 ```
 
