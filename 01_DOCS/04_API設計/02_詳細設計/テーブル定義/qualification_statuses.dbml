@@ -1,3 +1,8 @@
+use {
+  table qualifications
+  enum qualification_type
+} from './qualifications'
+
 // ============================================================
 // qualification_statuses(資格取得状況)
 //
