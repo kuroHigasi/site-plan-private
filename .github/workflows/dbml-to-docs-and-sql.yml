@@ -64,8 +64,10 @@ jobs:
             # 📄 A. カスタムスクリプトで Markdown 定義書を生成（@dbml/core 使用）
             node scripts/dbml-to-md.js "$DBML_FILE" "${MD_DIR}/${BASE_NAME}.md"
 
-            # 🐬 B. dbml2sql コマンドで MySQL 用 SQL を生成（@dbml/cli 提供バイナリ）
-            ./node_modules/.bin/dbml2sql "$DBML_FILE" --mysql -o "${SQL_DIR}/${BASE_NAME}.sql"
+            # 🐬 B. MySQL 用 SQL を生成
+            #    - use import なし: dbml2sql の出力をそのまま使用
+            #    - use import あり: エントリーファイルのテーブルのみ出力（重複回避）
+            node scripts/dbml-to-sql.js "$DBML_FILE" "${SQL_DIR}/${BASE_NAME}.sql"
           done
 
       # 5. 変更があれば自動コミットしてPush

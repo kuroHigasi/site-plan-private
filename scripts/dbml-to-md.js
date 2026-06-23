@@ -7,6 +7,9 @@
  *   node scripts/dbml-to-md.js <input.dbml> <output.md>
  *
  * 依存: @dbml/core
+ *
+ * 同一ディレクトリ内の他 .dbml ファイルも登録し、use / Ref による
+ * クロスファイル参照を解決する（parseDbmlProject を使用）。
  */
 
 'use strict';
@@ -22,16 +25,63 @@ if (!inputFile || !outputFile) {
   process.exit(1);
 }
 
-if (!fs.existsSync(inputFile)) {
+const absoluteInputFile = path.resolve(inputFile);
+
+if (!fs.existsSync(absoluteInputFile)) {
   console.error(`Error: File not found: ${inputFile}`);
   process.exit(1);
 }
 
-try {
-  const content = fs.readFileSync(inputFile, 'utf-8');
-  const database = new Parser().parse(content, 'dbml');
+function formatParserError(err) {
+  if (err?.message) return err.message;
+  if (Array.isArray(err?.diags) && err.diags.length > 0) {
+    return err.diags.map(d => d.message).join('\n');
+  }
+  return String(err);
+}
 
-  const baseName = path.basename(inputFile, '.dbml');
+function getNoteValue(note) {
+  if (note == null) return '';
+  if (typeof note === 'string') return note;
+  return note?.value ?? '';
+}
+
+function formatFieldType(fieldType) {
+  if (!fieldType) return '';
+  const typeName = fieldType.type_name ?? '';
+  const typeArgs = fieldType.args;
+  if (!typeArgs || typeName.includes('(')) return typeName;
+  return `${typeName}(${typeArgs})`;
+}
+
+function extractTableNames(dbmlContent) {
+  const names = [];
+  const pattern = /^Table\s+(?:"([^"]+)"|'([^']+)'|(\S+))/gm;
+  let match;
+  while ((match = pattern.exec(dbmlContent)) !== null) {
+    names.push(match[1] ?? match[2] ?? match[3]);
+  }
+  return new Set(names);
+}
+
+function registerDbmlDirectory(parser, dirPath) {
+  for (const fileName of fs.readdirSync(dirPath)) {
+    if (!fileName.endsWith('.dbml')) continue;
+    const filePath = path.join(dirPath, fileName);
+    parser.setDbmlSource(filePath, fs.readFileSync(filePath, 'utf-8'));
+  }
+}
+
+try {
+  const inputDir = path.dirname(absoluteInputFile);
+  const entryContent = fs.readFileSync(absoluteInputFile, 'utf-8');
+  const entryTableNames = extractTableNames(entryContent);
+
+  const parser = new Parser();
+  registerDbmlDirectory(parser, inputDir);
+  const database = parser.parseDbmlProject(absoluteInputFile);
+
+  const baseName = path.basename(absoluteInputFile, '.dbml');
   const lines = [];
 
   lines.push(`# ${baseName} テーブル定義`);
@@ -41,11 +91,13 @@ try {
 
   for (const schema of database.schemas) {
     for (const table of schema.tables) {
+      if (!entryTableNames.has(table.name)) continue;
+
       lines.push(`## ${table.name}`);
       lines.push('');
 
       // テーブルの Note
-      const tableNote = table.note?.value ?? null;
+      const tableNote = getNoteValue(table.note);
       if (tableNote) {
         lines.push(`> ${tableNote}`);
         lines.push('');
@@ -57,9 +109,7 @@ try {
 
       for (const field of table.fields) {
         const name = field.name ?? '';
-        const typeName = field.type?.type_name ?? '';
-        const typeArgs = field.type?.args ? `(${field.type.args})` : '';
-        const fullType = `${typeName}${typeArgs}`;
+        const fullType = formatFieldType(field.type);
         const notNull = field.not_null ? '✓' : '';
         const pk = field.pk ? '✓' : '';
 
@@ -71,7 +121,7 @@ try {
           defaultVal = type === 'expression' ? `\`${val}\`` : String(val);
         }
 
-        const note = field.note?.value ?? '';
+        const note = getNoteValue(field.note);
 
         lines.push(`| ${name} | ${fullType} | ${notNull} | ${pk} | ${defaultVal} | ${note} |`);
       }
@@ -138,7 +188,6 @@ try {
   fs.writeFileSync(outputFile, lines.join('\n'), 'utf-8');
   console.log(`✓ Generated: ${outputFile}`);
 } catch (err) {
-  console.error(`Error processing ${inputFile}:`, err.message);
+  console.error(`Error processing ${inputFile}:`, formatParserError(err));
   process.exit(1);
 }
-
