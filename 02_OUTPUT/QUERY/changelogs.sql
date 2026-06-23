@@ -1,6 +1,6 @@
 -- SQL dump generated using DBML (dbml.dbdiagram.io)
 -- Database: MySQL
--- Generated at: 2026-06-06T12:48:40.441Z
+-- Generated at: 2026-06-23T22:14:39.668Z
 
 CREATE TABLE `changelogs` (
   `id` int PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT 'ID',
@@ -17,3 +17,4 @@ CREATE INDEX `idx_changed_at` ON `changelogs` (`changed_at`);
 CREATE INDEX `idx_is_published` ON `changelogs` (`is_published`);
 
 ALTER TABLE `changelogs` COMMENT = 'トップページ（/）の更新履歴セクションで使用する。最新N件を表示。';
+
