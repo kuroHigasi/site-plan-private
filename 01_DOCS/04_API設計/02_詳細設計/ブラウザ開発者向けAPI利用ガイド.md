@@ -301,6 +301,28 @@ GET /api/public/changelogs.php
 
 ---
 
+### 管理: 単件取得（GET `?id=N`）
+
+詳細: [管理API単件取得API.md](./API仕様書/管理API単件取得API.md)
+
+管理 CRUD エンドポイントの GET は、`?id=N` を付けると **単件モード**（オブジェクト）で 1 件を返します。`id` を付けない場合は従来どおり一覧モード（配列）です。一覧側に主キー `id` で 1 件へ絞り込むクエリは設けません。
+
+```
+GET /api/admin/changelogs.php?id=1
+```
+
+**Response（200）:**
+```json
+{ "data": { "id": 1, "title": "...", "is_published": 1 } }
+```
+
+- 対象: `changelogs` / `qualifications` / `qualification_statuses` / `skill-categories` / `skills`
+- `id` 不正（未指定/非整数/0 以下）→ `400`、該当なし → `404`（PUT/DELETE と同じメッセージ）
+- 公開 API（`/api/public/`）には単件取得はありません
+- レスポンスは `pagination` を含みません
+
+---
+
 ### 管理: ユーザー一覧（PII）
 
 ```
@@ -500,6 +522,7 @@ Accept ヘッダーのサービス名は `astrohp` 固定（サーバー側 `API
 | ドキュメント | 内容 |
 |-------------|------|
 | [00_共通仕様.md](../../wiki/04_API設計/00_共通仕様.md) | API 共通仕様 |
+| [管理API単件取得API.md](./API仕様書/管理API単件取得API.md) | 管理 GET 単件取得（横断仕様） |
 | [変更履歴取得API.md](./API仕様書/変更履歴取得API.md) | 公開 changelogs GET |
 | [変更履歴管理API.md](./API仕様書/変更履歴管理API.md) | 管理 changelogs CRUD |
 | [管理画面認証API.md](./API仕様書/管理画面認証API.md) | login / session / logout |

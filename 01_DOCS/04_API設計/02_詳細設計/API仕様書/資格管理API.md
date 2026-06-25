@@ -37,6 +37,8 @@
 | per_page | integer | 任意 | 20 | 1〜100 | 1 ページあたり件数 |
 | category | string | 任意 | なし | `it` / `design` / `math` / `language` / `other` | 資格種別で絞り込み |
 
+> 一覧に主キー `id` で 1 件へ絞り込むパラメータは持たせない。`?id=N` 指定時は単件モード（`{ "data": { ... } }`）で 1 件を返す。詳細は [管理API単件取得API.md](管理API単件取得API.md) を参照。
+
 #### 正常時（200 OK）
 
 ```json
@@ -136,6 +138,8 @@
 | per_page | integer | 任意 | 20 | 1〜100 | 1 ページあたり件数 |
 | qualification_id | integer | 任意 | なし | 1 以上 | 資格マスタ ID で絞り込み |
 | status | string | 任意 | なし | `earned` / `in_progress` / `pending`（カンマ区切り可） | ステータスで絞り込み |
+
+> 一覧に取得状況行の主キー `id` で絞り込むパラメータは持たせない（`qualification_id` は外部キーによる絞り込みであり別物）。取得状況行 1 件の取得は `?id=N` の単件モードを使う。詳細は [管理API単件取得API.md](管理API単件取得API.md) を参照。
 
 #### 正常時（200 OK）
 
@@ -281,7 +285,7 @@
 | 400 Bad Request | バリデーションエラー、更新項目なし、JSON 不正 | `qualification_name is required.` |
 | 401 Unauthorized | Cookie なし・セッション無効 | `Authentication required.` |
 | 403 Forbidden | CSRF トークン欠落/不一致 | `CSRF token mismatch.` |
-| 404 Not Found | 存在しない id | `Qualification not found.` |
+| 404 Not Found | 存在しない id | `Qualification not found.`（取得状況は `Qualification status not found.`） |
 | 409 Conflict | 取得状況が残る資格マスタの削除 | `Cannot delete qualification with existing statuses.` |
 | 405 Method Not Allowed | 許可外 HTTP メソッド | `Method not allowed.` |
 | 406 Not Acceptable | Accept ヘッダー不正 | `Unsupported API version.` |
@@ -291,6 +295,7 @@
 ## 6. 補足
 
 - GET（読み取り）には CSRF トークン不要。
+- 単件取得（`GET ?id=N`）は [管理API単件取得API.md](管理API単件取得API.md) の横断仕様に準拠する（資格マスタ・取得状況とも）。
 - 公開サイト向けの読み取りは `/api/public/qualifications.php` を使用する（`資格一覧取得API.md` 参照）。
 - 同一 `qualification_id` に複数の取得状況行を登録できる（例: G検定の年度別取得履歴）。
 - 資格マスタに `is_published` は持たない。公開可否は取得状況の `status` と公開 API の抽出条件で制御する。

@@ -143,7 +143,50 @@ GET /api/public/changelogs.php?page=1&per_page=10&from=2026-01-01&to=2026-12-31
 | `from` | date | 任意 | 任意 | `YYYY-MM-DD` |
 | `to` | date | 任意 | 任意 | `YYYY-MM-DD` |
 
-### 3.3 レスポンスフォーマット統一
+### 3.3 単件取得（管理 GET `?id=N`）と `resolve_id()`
+
+管理 CRUD エンドポイントの GET は、`id` クエリの有無で一覧/単件を切り替える。`id` の取得・検証は PUT/PATCH/DELETE と共通の `resolve_id()` に集約する（横断仕様: `01_DOCS/04_API設計/02_詳細設計/API仕様書/管理API単件取得API.md`）。
+
+```php
+/**
+ * クエリ `id` を整数として取得・検証する。
+ * 不正時は RFC7807 の 400 を返して終了する。
+ * GET 単件取得と PUT/PATCH/DELETE で共通利用する。
+ */
+function resolve_id(string $paramName = 'id'): int
+{
+    if (!isset($_GET[$paramName]) || $_GET[$paramName] === '') {
+        respondProblem(400, 'id is required.');
+    }
+    $raw = $_GET[$paramName];
+    if (!preg_match('/^-?\d+$/', (string) $raw)) {
+        respondProblem(400, 'id must be an integer.');
+    }
+    $id = (int) $raw;
+    if ($id < 1) {
+        respondProblem(400, 'id must be an integer of 1 or greater.');
+    }
+    return $id;
+}
+
+// GET ハンドラの分岐例（changelogs.php）
+if (isset($_GET['id'])) {
+    $id = resolve_id();                 // 不正 id は 400 で終了
+    $row = findChangelogById($id);      // 主キー検索
+    if ($row === null) {
+        respondProblem(404, 'Changelog not found.');
+    }
+    respondData($row);                  // { "data": { ... } }（pagination なし）
+} else {
+    // 従来どおり一覧モード（page / per_page / from / to）
+}
+```
+
+- 単件 GET の `id` は **クエリのみ**（JSON body は使わない）。
+- 404 の detail はリソース別（`Changelog not found.` 等）で PUT/DELETE と一致させる。
+- 管理 API のレスポンスにはキャッシュヘッダーを付けない（`Cache-Control: no-cache, no-store, must-revalidate`）。
+
+### 3.4 レスポンスフォーマット統一
 
 ```json
 // 単体成功

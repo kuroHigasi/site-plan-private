@@ -39,6 +39,8 @@
 - 公開 API と異なり、`id` / `sort_order` / `created_at` / `updated_at` を返却する。
 - `is_coming_soon` は **0/1 の integer** で返す（公開 API は boolean）。
 
+> 一覧に主キー `id` で 1 件へ絞り込むパラメータは持たせない。`?id=N` 指定時はカテゴリ単件モード（`{ "data": { ... } }`、`subcategories[]` をネスト）で返す。**サブカテゴリの id 単体取得は提供しない。** 詳細は [管理API単件取得API.md](管理API単件取得API.md) を参照。
+
 ### 3.2 POST — カテゴリ作成（TODO）
 
 - レスポンス: `{ "data": { "id": N } }`（201）
@@ -65,6 +67,8 @@
 ### 4.1 GET — 一覧取得（TODO）
 
 - `category` 等で絞り込み可能とする想定。`evidence[]` をネスト。
+
+> 一覧に主キー `id` で 1 件へ絞り込むパラメータは持たせない。`?id=N` 指定時はスキル単件モード（`{ "data": { ... } }`、`evidence[]` をネスト）で返す。詳細は [管理API単件取得API.md](管理API単件取得API.md) を参照。
 
 ### 4.2 POST — スキル作成（TODO）
 
@@ -96,5 +100,6 @@
 
 ## 6. 補足
 
+- 単件取得（`GET ?id=N`）は [管理API単件取得API.md](管理API単件取得API.md) の横断仕様に準拠する（カテゴリ・スキル）。サブカテゴリの id 単体取得は提供しない。
 - 公開取得は `/api/public/skill-categories.php` を使用する（`スキルカテゴリ一覧取得API.md` 参照）。
 - 表示順は `sort_order` カラムで制御する。並べ替え UI を設ける場合は本 API で `sort_order` を更新する。
