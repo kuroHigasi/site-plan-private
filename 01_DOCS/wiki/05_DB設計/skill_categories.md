@@ -1,6 +1,6 @@
 # skill_categories テーブル定義
 
-> 自動生成: 2026-06-24
+> 自動生成: 2026-06-25
 
 ## skill_categories
 

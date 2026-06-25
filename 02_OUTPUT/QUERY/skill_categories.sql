@@ -1,6 +1,6 @@
 -- SQL dump generated using DBML (dbml.dbdiagram.io)
 -- Database: MySQL
--- Generated at: 2026-06-24T23:31:02.066Z
+-- Generated at: 2026-06-25T00:00:48.359Z
 
 CREATE TABLE `skill_categories` (
   `id` int PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT 'ID',
