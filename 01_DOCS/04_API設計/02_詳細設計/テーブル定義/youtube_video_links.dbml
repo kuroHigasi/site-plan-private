@@ -1,0 +1,36 @@
+use {
+  table youtube_videos
+} from './youtube_videos'
+
+// ============================================================
+// youtube_video_links（YouTube動画の関連リンク）
+//
+// 動画詳細ページに表示する関連リンク（0..n）を管理するテーブル。
+// YouTube 本編リンクは youtube_videos.youtube_video_id から組み立てるため、
+// 本テーブルでは扱わない（重複させない）。
+// 対応ページ：動画詳細（/works/youtube/{slug}/）
+// ============================================================
+
+Table youtube_video_links {
+  id               int          [pk, increment, not null, note: 'ID']
+  youtube_video_id int          [not null, note: '動画ID']
+  label            varchar(255) [not null, note: 'リンクの表示文言']
+  url              varchar(255) [not null, note: 'リンク先 URL（http/https）']
+  sort_order       int          [not null, default: 0, note: '同一動画内の表示順（昇順）']
+  created_at       timestamp    [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at       timestamp    [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (youtube_video_id, sort_order) [name: 'idx_youtube_video_links_video_sort']
+  }
+
+  Note: '''
+  動画詳細（P006-04-01）の「関連リンク」セクションで使用する。
+
+  - 0 件の場合、フロントエンドはセクションごと非表示とする。
+  - YouTube 本編への視聴リンクは youtube_videos.youtube_video_id から生成するため、
+    本テーブルには登録しない。
+  '''
+}
+
+Ref: youtube_video_links.youtube_video_id > youtube_videos.id [delete: cascade]
