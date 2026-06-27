@@ -1,6 +1,6 @@
 -- SQL dump generated using DBML (dbml.dbdiagram.io)
 -- Database: MySQL
--- Generated at: 2026-06-25T00:00:45.937Z
+-- Generated at: 2026-06-27T03:07:50.049Z
 
 CREATE TABLE `qualifications` (
   `id` int PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT 'ID',

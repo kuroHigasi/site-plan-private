@@ -1,6 +1,6 @@
 # qualification_statuses テーブル定義
 
-> 自動生成: 2026-06-25
+> 自動生成: 2026-06-27
 
 ## qualification_statuses
 

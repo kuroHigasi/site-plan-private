@@ -1,6 +1,6 @@
 -- SQL dump generated using DBML (dbml.dbdiagram.io)
 -- Database: MySQL
--- Generated at: 2026-06-27T01:00:32.545Z
+-- Generated at: 2026-06-27T03:07:40.586Z
 
 CREATE TABLE `youtube_video_links` (
   `id` int PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT 'ID',
