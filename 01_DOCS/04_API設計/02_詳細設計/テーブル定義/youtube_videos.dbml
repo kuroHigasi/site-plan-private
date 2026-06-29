@@ -3,7 +3,7 @@
 //
 // 投稿した YouTube 動画の詳細情報を管理するテーブル。
 // is_published=1 のレコードを一覧・詳細ページで表示する。
-// 対応ページ：YouTube（/works/youtube/）、動画詳細（/works/youtube/{slug}/）
+// 対応ページ：YouTube（/works/youtube/）、動画詳細（/works/youtube/details?slug={slug}）
 // ============================================================
 
 Enum youtube_thumbnail_source {
