@@ -1,6 +1,6 @@
 -- SQL dump generated using DBML (dbml.dbdiagram.io)
 -- Database: MySQL
--- Generated at: 2026-06-27T03:07:38.203Z
+-- Generated at: 2026-06-29T09:11:31.827Z
 
 CREATE TABLE `youtube_channel_settings` (
   `id` int PRIMARY KEY NOT NULL CHECK (id = 1) COMMENT 'ID（固定値 1 のみ）',

@@ -1,6 +1,6 @@
 # youtube_video_links テーブル定義
 
-> 自動生成: 2026-06-27
+> 自動生成: 2026-06-29
 
 ## youtube_video_links
 
