@@ -10,7 +10,7 @@
 | バージョン | v1（`Accept` ヘッダー指定） |
 | 認証 | **不要** |
 | 概要 | `youtube_videos` と `youtube_video_links` から公開済み動画を取得する。`slug` 指定で単件（詳細）、未指定で一覧を返す |
-| 主な利用画面 | `/works/youtube/`（P006-04 YouTube）, `/works/youtube/{slug}/`（P006-04-01 動画詳細） |
+| 主な利用画面 | `/works/youtube/`（P006-04 YouTube）, `/works/youtube/details?slug={slug}`（P006-04-01 動画詳細） |
 
 ## 2. 共通仕様への準拠
 
@@ -81,14 +81,14 @@
       "title": "ポートフォリオサイト制作の裏側",
       "published_at": "2025-07-10",
       "thumbnail_url": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-      "detail_href": "/works/youtube/sample-youtube-1/"
+      "detail_href": "/works/youtube/details?slug=sample-youtube-1"
     },
     {
       "slug": "sample-youtube-2",
       "title": "ゲーム開発のふりかえり",
       "published_at": "2025-06-01",
       "thumbnail_url": "https://example.com/media/youtube/abc123.webp",
-      "detail_href": "/works/youtube/sample-youtube-2/"
+      "detail_href": "/works/youtube/details?slug=sample-youtube-2"
     }
   ],
   "pagination": {
@@ -129,7 +129,7 @@
 | title | string | いいえ | 共通 | 動画名 |
 | published_at | string(date) | いいえ | 共通 | YouTube 公開日（`YYYY-MM-DD`） |
 | thumbnail_url | string(url) | いいえ | 共通 | 解決済みサムネイル URL（4.1 参照） |
-| detail_href | string | いいえ | 一覧のみ | 詳細ページパス（`/works/youtube/{slug}/`） |
+| detail_href | string | いいえ | 一覧のみ | 詳細ページ URL（`/works/youtube/details?slug={slug}`）。フロントは本値をそのままリンクに使用する |
 | thumbnail_alt | string | いいえ | 詳細のみ | サムネイルの代替テキスト |
 | youtube_url | string(url) | いいえ | 詳細のみ | YouTube 本編 URL（`https://www.youtube.com/watch?v={youtube_video_id}`） |
 | overview | string | はい | 詳細のみ | 動画の概要 |

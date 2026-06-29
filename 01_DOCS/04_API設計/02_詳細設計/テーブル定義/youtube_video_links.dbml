@@ -8,7 +8,7 @@ use {
 // 動画詳細ページに表示する関連リンク（0..n）を管理するテーブル。
 // YouTube 本編リンクは youtube_videos.youtube_video_id から組み立てるため、
 // 本テーブルでは扱わない（重複させない）。
-// 対応ページ：動画詳細（/works/youtube/{slug}/）
+// 対応ページ：動画詳細（/works/youtube/details?slug={slug}）
 // ============================================================
 
 Table youtube_video_links {
