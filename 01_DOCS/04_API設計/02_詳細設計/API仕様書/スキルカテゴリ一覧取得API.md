@@ -261,7 +261,7 @@ ORDER BY se.skill_id ASC, se.sort_order ASC, se.id ASC;
 
 - 公開 API は本エンドポイント 1 本に集約する（案 B: ネスト型）。SSG ビルド時の fetch 回数を 1 回に抑えられる。
 - スキルのみを横断取得する `/api/public/skills.php?category=` は現状不要のため設けない。将来カテゴリ横断検索が必要になった場合の拡張候補とする。
-- 管理画面での CRUD は `/api/admin/skill-categories.php` および `/api/admin/skills.php` を使用する（`スキル管理API.md` 参照）。
+- 管理画面での CRUD は site-plan-security リポジトリ `01_DOCS/wiki/04_API設計/04_スキル管理API.md` を参照する。
 
 ### 9.2 フロントエンド（astro-hp）連携メモ
 

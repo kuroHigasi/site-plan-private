@@ -222,6 +222,11 @@ ORDER BY l.sort_order ASC, l.id ASC;
 
 ## 9. 補足
 
-- `thumbnail_url` / `youtube_url` の組み立てロジックは `youtube_videos.dbml` の Note（サムネイル URL 解決ルール）に準拠する。
-- 管理画面での CRUD は `/api/admin/youtube-videos.php` および `/api/admin/youtube-video-links.php` を使用する（`YouTube動画管理API.md` 参照）。
+- `thumbnail_url` / `youtube_url` の組み立てロジックは以下に準拠する（公開 / 管理 API 共通）。
+  - サムネイル URL 解決:
+    - `thumbnail_source = custom`: `APP_URL + thumbnail_path`
+    - `thumbnail_source = youtube`: `https://i.ytimg.com/vi/{youtube_video_id}/hqdefault.jpg`（`maxresdefault` は動画によって 404 になりうるため既定は `hqdefault`）
+  - 並び順: `sort_order ASC, published_at DESC, id DESC`
+  - 一覧 / 詳細とも `is_published = 1` のレコードのみ返却する。
+- 管理画面での CRUD は site-plan-security リポジトリ `01_DOCS/wiki/04_API設計/07_YouTube動画管理API.md` を参照する。
 - チャンネル概要は別エンドポイント `/api/public/youtube-channel.php` で取得する（`YouTubeチャンネル取得API.md` 参照）。
