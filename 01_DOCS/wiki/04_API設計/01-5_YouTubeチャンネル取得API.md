@@ -82,5 +82,5 @@ WHERE id = 1;
 
 ## 8. 補足
 
-- チャンネル設定の編集は `/api/admin/youtube-channel.php` を使用する（`YouTube動画管理API.md` 参照）。
-- 行は常に 1 件である前提（`youtube_channel_settings.dbml` の Note 参照）。初期データはマイグレーションの seed で投入する。
+- チャンネル設定の編集は site-plan-security リポジトリ `01_DOCS/wiki/04_API設計/07_YouTube動画管理API.md`（チャンネル設定 API）を参照する。
+- 本テーブルは singleton（`id = 1` 固定、行は常に 1 件、AUTO_INCREMENT なし）である前提とし、初期データはマイグレーションの seed で 1 行投入する。

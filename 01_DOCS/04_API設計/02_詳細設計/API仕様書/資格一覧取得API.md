@@ -227,4 +227,4 @@ LIMIT :limit OFFSET :offset;
 ## 9. 補足
 
 - P005-01 / P005-02 のカテゴリ絞り込み UI で「存在しないカテゴリは表示しない」要件は、フロントエンドが `category` 未指定の全件取得結果から存在カテゴリを算出してタブを制御する。
-- 管理画面での CRUD は `/api/admin/qualifications.php` および `/api/admin/qualification_statuses.php` を使用する（`資格管理API.md` 参照）。
+- 管理画面での CRUD は site-plan-security リポジトリ `01_DOCS/wiki/04_API設計/05_資格管理API.md` を参照する。

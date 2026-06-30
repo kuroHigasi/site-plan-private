@@ -1,6 +1,6 @@
 # PHP + MySQL API 実装ガイド
 
-> **本プロジェクトの API 方針:** エンドポイントは `.php` ファイル単位（`/api/public/`, `/api/admin/`）。認証は管理 API のみ HttpOnly Cookie + CSRF。詳細は `01_DOCS/wiki/04_API設計/00_共通仕様.md` を参照。
+> **本プロジェクトの API 方針:** エンドポイントは `.php` ファイル単位。本リポジトリでは公開 API（`/api/public/`、認証不要・読み取り専用）の実装を扱う。管理 API（`/api/admin/`、HttpOnly Cookie + CSRF）の実装は非公開リポジトリ site-plan-security で管理する。詳細は `01_DOCS/wiki/04_API設計/00_共通仕様.md` を参照。
 
 ## 1. 開発環境セットアップ
 
@@ -123,12 +123,9 @@ foreach ($users as $user) {
 
 ```
 /api/public/changelogs.php     # 公開: 変更履歴一覧（GET のみ、認証不要）
-/api/admin/changelogs.php      # 管理: 変更履歴 CRUD（Cookie + CSRF）
-/api/admin/session.php         # 管理: セッション確認
-/api/admin/login.php           # 管理: ログイン
-/api/admin/logout.php          # 管理: ログアウト
-/api/admin/users.php           # 管理: ユーザー一覧（PII）
 ```
+
+管理 API（`/api/admin/` のコンテンツ CRUD・認証・ユーザー一覧）のエンドポイント構成と実装は site-plan-security の `01_DOCS/wiki/04_API設計/` を参照する。
 
 ### 3.2 クエリパラメータ（一覧取得）
 
@@ -136,57 +133,14 @@ foreach ($users as $user) {
 GET /api/public/changelogs.php?page=1&per_page=10&from=2026-01-01&to=2026-12-31
 ```
 
-| パラメータ | 型 | 公開 API | 管理 API | 説明 |
-|-----------|-----|----------|----------|------|
-| `page` | int | デフォルト 1 | デフォルト 1 | ページ番号 |
-| `per_page` | int | デフォルト 10、上限 50 | デフォルト 20、上限 100 | 1 ページあたり件数 |
-| `from` | date | 任意 | 任意 | `YYYY-MM-DD` |
-| `to` | date | 任意 | 任意 | `YYYY-MM-DD` |
+| パラメータ | 型 | 公開 API | 説明 |
+|-----------|-----|----------|------|
+| `page` | int | デフォルト 1 | ページ番号 |
+| `per_page` | int | デフォルト 10、上限 50 | 1 ページあたり件数 |
+| `from` | date | 任意 | `YYYY-MM-DD` |
+| `to` | date | 任意 | `YYYY-MM-DD` |
 
-### 3.3 単件取得（管理 GET `?id=N`）と `resolve_id()`
-
-管理 CRUD エンドポイントの GET は、`id` クエリの有無で一覧/単件を切り替える。`id` の取得・検証は PUT/PATCH/DELETE と共通の `resolve_id()` に集約する（横断仕様: `01_DOCS/04_API設計/02_詳細設計/API仕様書/管理API単件取得API.md`）。
-
-```php
-/**
- * クエリ `id` を整数として取得・検証する。
- * 不正時は RFC7807 の 400 を返して終了する。
- * GET 単件取得と PUT/PATCH/DELETE で共通利用する。
- */
-function resolve_id(string $paramName = 'id'): int
-{
-    if (!isset($_GET[$paramName]) || $_GET[$paramName] === '') {
-        respondProblem(400, 'id is required.');
-    }
-    $raw = $_GET[$paramName];
-    if (!preg_match('/^-?\d+$/', (string) $raw)) {
-        respondProblem(400, 'id must be an integer.');
-    }
-    $id = (int) $raw;
-    if ($id < 1) {
-        respondProblem(400, 'id must be an integer of 1 or greater.');
-    }
-    return $id;
-}
-
-// GET ハンドラの分岐例（changelogs.php）
-if (isset($_GET['id'])) {
-    $id = resolve_id();                 // 不正 id は 400 で終了
-    $row = findChangelogById($id);      // 主キー検索
-    if ($row === null) {
-        respondProblem(404, 'Changelog not found.');
-    }
-    respondData($row);                  // { "data": { ... } }（pagination なし）
-} else {
-    // 従来どおり一覧モード（page / per_page / from / to）
-}
-```
-
-- 単件 GET の `id` は **クエリのみ**（JSON body は使わない）。
-- 404 の detail はリソース別（`Changelog not found.` 等）で PUT/DELETE と一致させる。
-- 管理 API のレスポンスにはキャッシュヘッダーを付けない（`Cache-Control: no-cache, no-store, must-revalidate`）。
-
-### 3.4 レスポンスフォーマット統一
+### 3.3 レスポンスフォーマット統一
 
 ```json
 // 単体成功
@@ -223,34 +177,9 @@ if (isset($_GET['id'])) {
 
 ## 4. 認証・認可実装
 
-### 4.1 セッション Cookie + CSRF（管理 API）
+> 管理 API（`/api/admin/`）のセッション Cookie + CSRF 認証の実装は site-plan-security で管理する。本リポジトリは認証不要の公開 API のみを扱う。
 
-```php
-// api/admin/login.php（概要）
-// 成功時: Set-Cookie: astrohp_admin=...; HttpOnly; SameSite=Lax
-// レスポンス: { "data": { "admin_id": 1, "csrfToken": "..." } }
-
-// api/admin/session.php（概要）
-// 未ログインでも 200: { "data": { "authenticated": false, "csrfToken": null } }
-
-// 変更系リクエストの検証
-function requireAdminAuth(): void
-{
-    if (!isAuthenticated()) {
-        respondProblem(401, 'Authentication required.');
-    }
-}
-
-function requireCsrfToken(): void
-{
-    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (!hash_equals(getSessionCsrfToken(), $token)) {
-        respondProblem(403, 'CSRF token mismatch.');
-    }
-}
-```
-
-### 4.2 公開 API（認証不要）
+### 4.1 公開 API（認証不要）
 
 ```php
 // api/public/changelogs.php（概要）
@@ -259,7 +188,7 @@ function requireCsrfToken(): void
 // Cache-Control: public, max-age=60
 ```
 
-### 4.3 ブラウザからの fetch 例
+### 4.2 ブラウザからの fetch 例
 
 ```javascript
 const API_ACCEPT = 'application/vnd.astrohp+json;version=1';
@@ -268,23 +197,11 @@ const API_ACCEPT = 'application/vnd.astrohp+json;version=1';
 const res = await fetch(`${BASE}/public/changelogs.php?page=1`, {
   headers: { Accept: API_ACCEPT },
 });
-
-// 管理 API（変更系）
-const res = await fetch(`${BASE}/admin/changelogs.php`, {
-  method: 'POST',
-  credentials: 'include',
-  headers: {
-    Accept: API_ACCEPT,
-    'Content-Type': 'application/json',
-    'X-CSRF-Token': csrfToken,
-  },
-  body: JSON.stringify({ title: '...', changed_at: '2026-06-01', is_published: true }),
-});
 ```
 
 > Bearer トークン（JWT 等）は **使用しない**。以下の Laravel 例は汎用参考として残す。
 
-### 4.4 参考: JWT 認証（Laravel Sanctum ― 本プロジェクト非採用）
+### 4.3 参考: JWT 認証（Laravel Sanctum ― 本プロジェクト非採用）
 ```php
 // routes/api.php
 Route::post('/login', [AuthController::class, 'login']);
@@ -319,7 +236,7 @@ class AuthController extends Controller
 }
 ```
 
-### 4.5 参考: ロールベースアクセス制御（RBAC ― 本プロジェクト非採用）
+### 4.4 参考: ロールベースアクセス制御（RBAC ― 本プロジェクト非採用）
 ```php
 // app/Models/User.php
 class User extends Model
@@ -490,22 +407,6 @@ public function test_returns_406_without_accept_header(): void
     $response = $this->get('/api/public/changelogs.php');
     $response->assertStatus(406)
              ->assertJsonPath('status', 406);
-}
-
-public function test_admin_post_requires_csrf(): void
-{
-    $this->actingAsAdmin(); // Cookie セッション設定
-
-    $response = $this->postJson('/api/admin/changelogs.php', [
-        'title' => 'Test',
-        'changed_at' => '2026-06-01',
-    ], [
-        'Accept' => 'application/vnd.astrohp+json;version=1',
-        // X-CSRF-Token なし
-    ]);
-
-    $response->assertStatus(403)
-             ->assertJsonPath('detail', 'CSRF token mismatch.');
 }
 ```
 

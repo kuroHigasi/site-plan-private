@@ -158,5 +158,5 @@ LIMIT :limit OFFSET :offset;
 ## 9. 補足
 
 - 本 API は公開フラグ `is_published = 1` のみ返却し、非公開データは返さない。
-- 管理画面での CRUD は `/api/admin/changelogs.php` を使用する（`変更履歴管理API.md` 参照）。
+- 管理画面での CRUD は site-plan-security リポジトリ `01_DOCS/wiki/04_API設計/03_変更履歴管理API.md` を参照する。
 - 旧 URL `/api/changelogs.php` は使用しない。
