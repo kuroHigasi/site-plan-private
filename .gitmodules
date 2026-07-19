@@ -1,0 +1,8 @@
+[submodule "site-plan-security"]
+	path = submodule/site-plan-security
+	url = https://github.com/kuroHigasi/site-plan-security.git
+	branch = main
+[submodule "browser-game-doc"]
+	path = submodule/browser-game-doc
+	url = https://github.com/kuroHigasi/browser-game-doc.git
+	branch = main
