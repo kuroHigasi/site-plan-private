@@ -109,12 +109,14 @@
       "skills": [
         {
           "subcategory": "language",
+          "slug": "html",
           "name": "HTML",
           "summary": "セマンティックなマークアップとアクセシビリティを意識した構造化ができます。",
           "level": 4
         },
         {
           "subcategory": "framework",
+          "slug": "astro",
           "name": "Astro",
           "summary": "本サイトを Astro で構築し、静的サイト生成と部分的な水和を活用しています。",
           "level": 3,
@@ -147,6 +149,7 @@
 | data[].subcategories[].label | string | いいえ | フィルタボタンの表示名 |
 | data[].skills | array | `include=skills` 時のみ | カテゴリ配下のスキル一覧。`include` 未指定時はキーごと省略 |
 | data[].skills[].subcategory | string | いいえ | 紐付くサブカテゴリの `slug`（`SkillIcon.vue` のキー） |
+| data[].skills[].slug | string | いいえ | スキル識別子（`/about/skills/{slug}/`） |
 | data[].skills[].name | string | いいえ | スキル名（`skills.name`） |
 | data[].skills[].summary | string | いいえ | スキルの説明文（`skills.summary`） |
 | data[].skills[].level | integer | いいえ | 習熟度（1〜5） |
@@ -234,6 +237,7 @@ ORDER BY ss.skill_category_id ASC, ss.sort_order ASC, ss.id ASC;
 SELECT
   s.id,
   s.skill_category_id,
+  s.slug,
   ss.slug AS subcategory,
   s.name,
   s.summary,
